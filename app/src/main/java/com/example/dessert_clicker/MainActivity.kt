@@ -9,33 +9,40 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -155,7 +162,6 @@ private fun DessertClickerApp(
             dessertsSold = uiState.dessertsSold,
             dessertImageId = uiState.currentDessertImageId,
             onDessertClicked = onDessertClicked,
-            progressToNext = uiState.progressToNext,
             modifier = Modifier.padding(contentPadding)
         )
     }
@@ -169,6 +175,7 @@ private fun AppBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .background(MaterialTheme.colorScheme.primary),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -198,9 +205,19 @@ fun DessertClickerScreen(
     dessertsSold: Int,
     dessertImageId: Int,
     onDessertClicked: () -> Unit,
-    progressToNext: Float,
     modifier: Modifier = Modifier
 ) {
+    var isClicked by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isClicked) 1.2f else 1f,
+        animationSpec = tween(durationMillis = 200),
+        finishedListener = {
+            isClicked = false
+            onDessertClicked()
+        }
+    )
+
     Box(modifier = modifier) {
         Image(
             painter = painterResource(R.drawable.bakery_back),
@@ -220,7 +237,13 @@ fun DessertClickerScreen(
                         .width(150.dp)
                         .height(150.dp)
                         .align(Alignment.Center)
-                        .clickable { onDessertClicked() },
+                        .scale(scale)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            isClicked = true
+                        },
                     contentScale = ContentScale.Crop,
                 )
             }
@@ -259,21 +282,26 @@ private fun TransactionInfo(
         RevenueInfo(revenue)
 
         Text(
-            text = "До следующего десерта",
+            text = "Until the next dessert",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
+        val animatedProgress by animateFloatAsState(
+            targetValue = progress.coerceIn(0f, 1f),
+            animationSpec = tween(durationMillis = 500)
+        )
         LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
+            progress = { animatedProgress },
             modifier = Modifier
                 .fillMaxWidth()
+                .height(10.dp)
                 .padding(horizontal = 16.dp),
             color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            trackColor = Color.LightGray,
+            strokeCap = StrokeCap.Round
         )
     }
 }
-
 
 @Composable
 private fun RevenueInfo(revenue: Int, modifier: Modifier = Modifier) {
