@@ -26,11 +26,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -207,15 +208,11 @@ fun DessertClickerScreen(
     onDessertClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isClicked by remember { mutableStateOf(false) }
-
+    var isAnimating by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isClicked) 1.2f else 1f,
-        animationSpec = tween(durationMillis = 200),
-        finishedListener = {
-            isClicked = false
-            onDessertClicked()
-        }
+        targetValue = if (isAnimating) 0.9f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        finishedListener = { isAnimating = false }
     )
 
     Box(modifier = modifier) {
@@ -239,10 +236,13 @@ fun DessertClickerScreen(
                         .align(Alignment.Center)
                         .scale(scale)
                         .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
                         ) {
-                            isClicked = true
+                            if (!isAnimating) {
+                                isAnimating = true
+                                onDessertClicked()
+                            }
                         },
                     contentScale = ContentScale.Crop,
                 )
@@ -270,35 +270,82 @@ private fun TransactionInfo(
     val progress = if (nextDessertStart == currentDessertStart) {
         1f
     } else {
-        (dessertsSold - currentDessertStart).toFloat() /
-                (nextDessertStart - currentDessertStart).toFloat()
+        (dessertsSold - currentDessertStart).toFloat() / (nextDessertStart - currentDessertStart)
     }
 
-    Column(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surface)
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 500)
+    )
+
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        shape = MaterialTheme.shapes.medium,
+        shadowElevation = 8.dp
     ) {
-        DessertsSoldInfo(dessertsSold)
-        RevenueInfo(revenue)
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatItem(
+                label = stringResource(R.string.dessert_sold),
+                value = dessertsSold.toString()
+            )
+
+            StatItem(
+                label = stringResource(R.string.total_revenue),
+                value = "$$revenue"
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            )
+
+            Text(
+                text = stringResource(R.string.until_next_dessert),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeCap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        )
 
         Text(
-            text = "Until the next dessert",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-        val animatedProgress by animateFloatAsState(
-            targetValue = progress.coerceIn(0f, 1f),
-            animationSpec = tween(durationMillis = 500)
-        )
-        LinearProgressIndicator(
-            progress = { animatedProgress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(10.dp)
-                .padding(horizontal = 16.dp),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = Color.LightGray,
-            strokeCap = StrokeCap.Round
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -307,18 +354,18 @@ private fun TransactionInfo(
 private fun RevenueInfo(revenue: Int, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = stringResource(R.string.total_revenue),
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.titleMedium
         )
         Text(
             text = "$${revenue}",
-            textAlign = TextAlign.Right,
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.End
         )
     }
 }
@@ -327,17 +374,18 @@ private fun RevenueInfo(revenue: Int, modifier: Modifier = Modifier) {
 private fun DessertsSoldInfo(dessertsSold: Int, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = stringResource(R.string.dessert_sold),
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.titleMedium
         )
         Text(
             text = dessertsSold.toString(),
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.End
         )
     }
 }
