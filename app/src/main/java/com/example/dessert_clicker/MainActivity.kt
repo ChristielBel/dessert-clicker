@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,56 +50,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dessert_clicker.data.Datasource
 import com.example.dessert_clicker.data.DessertUiState
 import com.example.dessert_clicker.ui.DessertViewModel
 import com.example.dessert_clicker.ui.theme.DessertClickerTheme
 
-private const val TAG = "MainActivity"
-
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate Called")
 
         setContent {
             DessertClickerTheme {
                 DessertClickerApp()
             }
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        Log.d(TAG, "onStart Called")
-    }
-
-    override fun onResume() {
-        super.onResume()
-        Log.d(TAG, "onResume Called")
-    }
-
-    override fun onRestart() {
-        super.onRestart()
-        Log.d(TAG, "onRestart Called")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        Log.d(TAG, "onPause Called")
-    }
-
-    override fun onStop() {
-        super.onStop()
-        Log.d(TAG, "onStop Called")
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d(TAG, "onDestroy Called")
     }
 }
 
@@ -117,7 +82,7 @@ private fun shareSoldDessertsInformation(intentContext: Context, dessertsSold: I
     val shareIntent = Intent.createChooser(sendIntent, null)
 
     try {
-        startActivity(intentContext, shareIntent, null)
+        intentContext.startActivity(shareIntent)
     } catch (e: ActivityNotFoundException) {
         Toast.makeText(
             intentContext,
@@ -225,7 +190,8 @@ fun DessertClickerScreen(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(top = 30.dp),
             ) {
                 Image(
                     painter = painterResource(dessertImageId),
@@ -313,7 +279,7 @@ private fun TransactionInfo(
             )
 
             LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
+                progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp),
@@ -346,46 +312,6 @@ private fun StatItem(
             text = value,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
-private fun RevenueInfo(revenue: Int, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(R.string.total_revenue),
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = "$${revenue}",
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.End
-        )
-    }
-}
-
-@Composable
-private fun DessertsSoldInfo(dessertsSold: Int, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(R.string.dessert_sold),
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = dessertsSold.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.End
         )
     }
 }
