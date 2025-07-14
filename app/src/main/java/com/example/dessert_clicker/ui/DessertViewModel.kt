@@ -16,12 +16,23 @@ class DessertViewModel : ViewModel() {
         _dessertUiState.update { cupcakeUiState ->
             val dessertsSold = cupcakeUiState.dessertsSold + 1
             val nextDessertIndex = determineDessertIndex(dessertsSold)
+
+            val nextStart = if (nextDessertIndex + 1 < dessertList.size){
+                dessertList[nextDessertIndex + 1].startProductionAmount
+            } else Int.MAX_VALUE
+
+            val currentStart = dessertList[nextDessertIndex].startProductionAmount
+            val range = (nextStart - currentStart).coerceAtLeast(1)
+            val progress = ((dessertsSold - currentStart).toFloat() / range).coerceIn(0f, 1f)
+
             cupcakeUiState.copy(
                 currentDessertIndex = nextDessertIndex,
                 revenue = cupcakeUiState.revenue + cupcakeUiState.currentDessertPrice,
                 dessertsSold = dessertsSold,
                 currentDessertImageId = dessertList[nextDessertIndex].imageId,
-                currentDessertPrice = dessertList[nextDessertIndex].price
+                currentDessertPrice = dessertList[nextDessertIndex].price,
+                nextDessertStart = nextStart,
+                progressToNext = progress
             )
         }
     }

@@ -28,9 +28,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dessert_clicker.data.Datasource
 import com.example.dessert_clicker.data.DessertUiState
 import com.example.dessert_clicker.ui.DessertViewModel
 import com.example.dessert_clicker.ui.theme.DessertClickerTheme
@@ -93,9 +96,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Share desserts sold information using ACTION_SEND intent
- */
 private fun shareSoldDessertsInformation(intentContext: Context, dessertsSold: Int, revenue: Int) {
     val sendIntent = Intent().apply {
         action = Intent.ACTION_SEND
@@ -155,6 +155,7 @@ private fun DessertClickerApp(
             dessertsSold = uiState.dessertsSold,
             dessertImageId = uiState.currentDessertImageId,
             onDessertClicked = onDessertClicked,
+            progressToNext = uiState.progressToNext,
             modifier = Modifier.padding(contentPadding)
         )
     }
@@ -195,8 +196,9 @@ private fun AppBar(
 fun DessertClickerScreen(
     revenue: Int,
     dessertsSold: Int,
-    @DrawableRes dessertImageId: Int,
+    dessertImageId: Int,
     onDessertClicked: () -> Unit,
+    progressToNext: Float,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
@@ -233,14 +235,45 @@ private fun TransactionInfo(
     dessertsSold: Int,
     modifier: Modifier = Modifier
 ) {
+    val currentDessertIndex = remember(dessertsSold) {
+        Datasource.dessertList.indexOfLast { dessertsSold >= it.startProductionAmount }
+    }
+
+    val nextDessertStart = Datasource.dessertList
+        .getOrNull(currentDessertIndex + 1)
+        ?.startProductionAmount ?: dessertsSold
+
+    val currentDessertStart = Datasource.dessertList[currentDessertIndex].startProductionAmount
+    val progress = if (nextDessertStart == currentDessertStart) {
+        1f
+    } else {
+        (dessertsSold - currentDessertStart).toFloat() /
+                (nextDessertStart - currentDessertStart).toFloat()
+    }
+
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface),
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         DessertsSoldInfo(dessertsSold)
         RevenueInfo(revenue)
+
+        Text(
+            text = "До следующего десерта",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+        LinearProgressIndicator(
+            progress = { progress.coerceIn(0f, 1f) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        )
     }
 }
+
 
 @Composable
 private fun RevenueInfo(revenue: Int, modifier: Modifier = Modifier) {
@@ -283,7 +316,7 @@ private fun DessertsSoldInfo(dessertsSold: Int, modifier: Modifier = Modifier) {
 
 @Composable
 @Preview("Light Theme")
-@Preview("Dark Theme", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview("Dark Theme", uiMode = Configuration.UI_MODE_NIGHT_YES, device = "id:pixel_5")
 fun MyDessertClickerAppPreview() {
     DessertClickerTheme {
         DessertClickerApp(
