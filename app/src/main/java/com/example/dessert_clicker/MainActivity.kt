@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +56,7 @@ import com.example.dessert_clicker.data.Datasource
 import com.example.dessert_clicker.data.DessertUiState
 import com.example.dessert_clicker.ui.DessertViewModel
 import com.example.dessert_clicker.ui.theme.DessertClickerTheme
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -176,9 +178,15 @@ fun DessertClickerScreen(
     var isAnimating by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isAnimating) 0.9f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        finishedListener = { isAnimating = false }
+        animationSpec = tween(durationMillis = 100)
     )
+
+    LaunchedEffect(isAnimating) {
+        if (isAnimating) {
+            delay(100)
+            isAnimating = false
+        }
+    }
 
     Box(modifier = modifier) {
         Image(
